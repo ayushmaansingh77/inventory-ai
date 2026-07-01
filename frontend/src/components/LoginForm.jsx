@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api/axiosInstance"
 
 const LoginForm = ({ onLogin }) => {
   const [email, setEmail] = useState("");
@@ -15,7 +15,7 @@ const LoginForm = ({ onLogin }) => {
     setError(""); 
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
+      const response = await api.post("/auth/login", {
         email: email.trim(), // User agar end mein galti se space de de, toh trim() use saaf kar dega
         password: password,
       });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api/axiosInstance";
 
 const RegisterForm = ({ onRegisterSuccess }) => {
   const [email, setEmail] = useState("");
@@ -16,7 +16,7 @@ const RegisterForm = ({ onRegisterSuccess }) => {
     setError(""); 
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/register", {
+      const response = await api.post("/auth/register", {
         email: email.trim(), // Extraneous spaces remove karne ke liye
         password: password,
         username: username.trim(),
