@@ -1,21 +1,23 @@
 import { useState, useEffect } from "react"
+import { useSelector, useDispatch } from "react-redux"
 import api from "../api/axiosInstance"
+import { fetchItems } from "../features/inventory/inventorySlice"
 
 function Dashboard({ onLogout }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const dispatch = useDispatch()
+  const { items, status, error } = useSelector((state) => state.inventory)
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // 1. Standard Flask endpoint to fetch the logged-in user profile
-        const response = await api.get("/auth/me") 
-        
-        // 2. Flask usually returns the user object directly or nested under a key
-        setUser(response.data) // or response.data.user depending on your Flask return statement
+        const response = await api.get("/auth/me")
+        setUser(response.data)
       } catch (err) {
         console.error("Failed to fetch user:", err)
-        onLogout() // token is invalid or expired — force logout
+        onLogout()
       } finally {
         setLoading(false)
       }
@@ -23,6 +25,11 @@ function Dashboard({ onLogout }) {
 
     fetchUser()
   }, [])
+
+  // Fetch inventory items on mount — separate effect, separate concern from user auth
+  useEffect(() => {
+    dispatch(fetchItems())
+  }, [dispatch])
 
   if (loading) {
     return (
@@ -38,7 +45,6 @@ function Dashboard({ onLogout }) {
         <h1 className="text-xl font-bold text-gray-800">📦 Inventory AI</h1>
         <div className="flex items-center gap-4">
           <span className="text-gray-600 text-sm">
-            {/* 3. Render whatever property your Flask model uses (e.g., username, email, or name) */}
             👋 Welcome, <span className="font-semibold">{user?.username}</span>
           </span>
           <button
@@ -53,35 +59,71 @@ function Dashboard({ onLogout }) {
       <div className="max-w-6xl mx-auto mt-8 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-          {/* Stat Card 1 */}
+          {/* Stat Card 1 — now real data */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <p className="text-gray-500 text-sm">Total Products</p>
-            <p className="text-3xl font-bold text-gray-800 mt-1">0</p>
-            <p className="text-blue-500 text-xs mt-2">Week 2 → real data</p>
+            <p className="text-3xl font-bold text-gray-800 mt-1">{items.length}</p>
+            <p className="text-blue-500 text-xs mt-2">Live from Redux</p>
           </div>
 
           {/* Stat Card 2 */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <p className="text-gray-500 text-sm">Low Stock Alerts</p>
-            <p className="text-3xl font-bold text-red-500 mt-1">0</p>
-            <p className="text-blue-500 text-xs mt-2">Week 2 → real data</p>
+            <p className="text-3xl font-bold text-red-500 mt-1">
+              {items.filter((item) => item.quantity <= item.reorder_level).length}
+            </p>
+            <p className="text-blue-500 text-xs mt-2">Live from Redux</p>
           </div>
 
           {/* Stat Card 3 */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <p className="text-gray-500 text-sm">Demand Forecast</p>
             <p className="text-3xl font-bold text-green-500 mt-1">--</p>
-            <p className="text-blue-500 text-xs mt-2">Week 2 → ML model</p>
+            <p className="text-blue-500 text-xs mt-2">Week 3 → ML model</p>
           </div>
 
         </div>
 
-        {/* Inventory Table Placeholder */}
+        {/* Inventory Table — now driven by Redux state */}
         <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Inventory Items</h2>
-          <p className="text-gray-400 text-sm text-center py-8">
-            No items yet — inventory CRUD coming in Week 2 🚀
-          </p>
+
+          {status === "loading" && (
+            <p className="text-gray-400 text-sm text-center py-8">Loading items...</p>
+          )}
+
+          {status === "failed" && (
+            <p className="text-red-500 text-sm text-center py-8">Error: {error}</p>
+          )}
+
+          {status === "succeeded" && items.length === 0 && (
+            <p className="text-gray-400 text-sm text-center py-8">
+              No items yet — add your first item soon 🚀
+            </p>
+          )}
+
+          {status === "succeeded" && items.length > 0 && (
+            <table className="w-full text-sm text-left">
+              <thead className="text-gray-500 border-b">
+                <tr>
+                  <th className="py-2">Name</th>
+                  <th className="py-2">SKU</th>
+                  <th className="py-2">Quantity</th>
+                  <th className="py-2">Unit Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id} className="border-b last:border-0">
+                    <td className="py-2">{item.name}</td>
+                    <td className="py-2">{item.sku}</td>
+                    <td className="py-2">{item.quantity}</td>
+                    <td className="py-2">${item.unit_price}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
