@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import api from "../api/axiosInstance"
 import { fetchItems } from "../features/inventory/inventorySlice"
+import AddItemForm from "../components/AddItemForm"
 
 function Dashboard({ onLogout }) {
   const [user, setUser] = useState(null)
@@ -59,7 +60,7 @@ function Dashboard({ onLogout }) {
       <div className="max-w-6xl mx-auto mt-8 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-          {/* Stat Card 1 — now real data */}
+          {/* Stat Card 1    */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <p className="text-gray-500 text-sm">Total Products</p>
             <p className="text-3xl font-bold text-gray-800 mt-1">{items.length}</p>
@@ -83,6 +84,7 @@ function Dashboard({ onLogout }) {
           </div>
 
         </div>
+            <AddItemForm />  
 
         {/* Inventory Table — now driven by Redux state */}
         <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
