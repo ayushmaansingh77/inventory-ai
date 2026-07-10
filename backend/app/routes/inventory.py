@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services import inventory_services
-
+from app.services.forecasting_service import get_forecast_for_item
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
 
 
@@ -93,6 +93,49 @@ def delete_item_route(item_id):
         return jsonify({"error": error}), 404
 
     return "", 204
+
+@inventory_bp.route("/<int:item_id>/forecast", methods=["GET"])
+@jwt_required()
+def get_forecast(item_id):
+    user_id = get_jwt_identity()
+   
+    days_ahead=request.args.get(
+        "days_ahead",
+        default=7,
+        type=int
+    )
+#basic validation check
+    if days_ahead <1:
+     return jsonify({
+        "error": "days ahead musst be at least 1."
+
+    }),400
+
+    forecast, error = get_forecast_for_item(
+    user_id,
+    item_id,
+    days_ahead
+
+)
+    if error:
+
+        # Item doesn't exist or doesn't belong to this user
+        if error == "Item not found":
+            return jsonify({
+                "error": error
+            }), 404
+
+        # Any other validation error (e.g., insufficient history)
+        return jsonify({
+            "error": error
+        }), 400
+
+    # Success
+    return jsonify({
+        "forecast": forecast
+    }), 200
+    
+    #calling the service
 
 
 
