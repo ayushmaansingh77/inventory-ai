@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services import inventory_services
 from app.services.forecasting_service import get_forecast_for_item
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
-
+from app.services.lstm_forecasting_service import get_lstm_forecast_for_item
 
 @inventory_bp.route("/", methods=["GET"])
 @jwt_required()
@@ -144,3 +144,21 @@ def get_forecast(item_id):
 # if error:
 #     return jsonify({"error": error}), <error_code>
 # return jsonify(value.to_dict()), <success_code>
+#routhing the lstm as well
+@inventory_bp.route("/<int:item_id>/forecast/lstm", methods=["GET"])
+@jwt_required()
+def get_lstm_forecast(item_id):
+    user_id = get_jwt_identity()
+    days_ahead = request.args.get("days_ahead", default=7, type=int)
+
+    if days_ahead < 1:
+        return jsonify({"error": "days_ahead must be at least 1."}), 400
+
+    forecast, error = get_lstm_forecast_for_item(user_id, item_id, days_ahead)
+
+    if error:
+        if error == "Inventory item not found.":
+            return jsonify({"error": error}), 404
+        return jsonify({"error": error}), 400
+
+    return jsonify({"forecast": forecast}), 200

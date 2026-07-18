@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useSelector, useDispatch } from "react-redux"
 import api from "../api/axiosInstance"
 import { fetchItems, updateItem, deleteItem } from "../features/inventory/inventorySlice"
 import AddItemForm from "../components/AddItemForm"
+
 
 function Dashboard({ onLogout }) {
 //filtering based on search
@@ -20,15 +21,51 @@ const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" })
   const dispatch = useDispatch()
   const { items, status, error } = useSelector((state) => state.inventory)
 
+
+  // Finding the most urgent low stock item
+const mostUrgentItem = useMemo(() => {
+
+  // nly keep items whose quantity is at or below reorder level
+  const lowStockItems = items.filter(
+    (item) => item.quantity <= item.reorder_level
+  )
+
+  // no item is is low stock
+  if (lowStockItems.length === 0) {
+    return null
+  }
+
+  // Return the item with the biggest shortage
+  return lowStockItems.reduce((mostUrgent, current) => {
+
+    const currentGap = current.quantity - current.reorder_level
+    const urgentGap = mostUrgent.quantity - mostUrgent.reorder_level
+
+    return currentGap < urgentGap ? current : mostUrgent
+
+  })
+
+}, [items])
+
   // Which row is currently being edited. null = no row
   const [editingId, setEditingId] = useState(null)
 
   // Stores the temporary edited values.
   const [editData, setEditData] = useState({})
   ///sorting and fileterning the colums that is handler funcions
-  // ====================================
+   const [forecast, setForecast] = useState(null)
+   const [forecastError, setForecastError] = useState(null)
+
+  const [lstmForecast, setLstmForecast] = useState(null)
+  const [lstmForecastError, setLstmForecastError] = useState(null)
+  const [lstmLoading, setLstmLoading] = useState(false)
+
+
+ 
+
 // Handles clicking a sortable column.
-// ====================================
+
+
 const handleSort = (key) => {
 
   // Functional update ensures we always
@@ -123,6 +160,74 @@ const handleSort = (key) => {
     dispatch(fetchItems())
   }, [dispatch])
 
+
+  useEffect(() => {
+
+  // No low-stock items
+  if (!mostUrgentItem) {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setForecast((prev) => (prev === null ? prev : null))
+    setForecastError((prev) => (prev === null ? prev : null))
+    return
+  }
+
+  const fetchForecast = async () => {
+
+    try {
+         setForecast(null)
+    setForecastError(null)
+      const response = await api.get(
+        `/inventory/${mostUrgentItem.id}/forecast`
+      )
+
+      setForecast(response.data.forecast)
+      setForecastError(null)
+
+    } catch (err) {
+
+      setForecast(null)
+
+      setForecastError(
+        err.response?.data?.error || "Unable to load forecast."
+      )
+    }
+
+  }
+
+  fetchForecast()
+
+}, [mostUrgentItem])
+
+
+// LSTM forecast
+  useEffect(() => {
+    if (!mostUrgentItem) {
+      setLstmForecast((prev) => (prev === null ? prev : null))
+      setLstmForecastError((prev) => (prev === null ? prev : null))
+      return
+    }
+
+    const fetchLstmForecast = async () => {
+      setLstmForecast(null)
+      setLstmForecastError(null)
+      setLstmLoading(true)
+      try {
+        const response = await api.get(
+          `/inventory/${mostUrgentItem.id}/forecast/lstm`
+        )
+        setLstmForecast(response.data.forecast)
+      } catch (err) {
+        setLstmForecastError(
+          err.response?.data?.error || "Unable to load LSTM forecast."
+        )
+      } finally {
+        setLstmLoading(false)
+      }
+    }
+
+    fetchLstmForecast()
+  }, [mostUrgentItem])
+
   // Single loading check, placed AFTER all hooks
   if (loading) {
     return (
@@ -162,9 +267,9 @@ const visibleItems = [...items].filter((item) => {
     return item.quantity <= item.reorder_level;
   })
 
-  // =============================
+  
   // SORTING
-  // =============================
+  
   .sort((a, b) => {
 
     // No column selected?
@@ -228,8 +333,12 @@ const visibleItems = [...items].filter((item) => {
 
           <div className="bg-white rounded-xl shadow-sm p-6">
             <p className="text-gray-500 text-sm">Demand Forecast</p>
-            <p className="text-3xl font-bold text-green-500 mt-1">--</p>
-            <p className="text-blue-500 text-xs mt-2">Week 3 → ML model</p>
+            <p className="text-3xl font-bold text-green-500 mt-1">
+              {forecast ? forecast[0].predicted_quantity : "--"}
+            </p>
+            <p className="text-blue-500 text-xs mt-2">
+              {mostUrgentItem ? `${mostUrgentItem.name} · tomorrow` : "No urgent items"}
+            </p>
           </div>
         </div>
 
@@ -319,6 +428,58 @@ const visibleItems = [...items].filter((item) => {
 
 </div>
 
+{mostUrgentItem && (
+  <div className="bg-yellow-100 border border-yellow-400 rounded p-4 mb-4">
+
+    <h3 className="font-bold">
+      Sales Forecast
+    </h3>
+
+    <p className="mb-2">
+      Item: <strong>{mostUrgentItem.name}</strong>
+    </p>
+
+    {forecastError ? (
+
+      <p className="text-red-600">
+        {forecastError}
+      </p>
+
+    ) : forecast ? (
+
+      <ul className="list-disc ml-6">
+
+        {forecast.map((day) => (
+
+          <li key={day.day_offset}>
+            Day {day.day_offset}: {day.predicted_quantity} units
+          </li>
+
+        ))}
+
+      </ul>
+
+    ) : (
+
+      <p>Loading forecast...</p>
+
+    )}<h4 className="font-semibold mt-3">LSTM Forecast</h4>
+              {lstmForecastError ? (
+                <p className="text-red-600">{lstmForecastError}</p>
+              ) : lstmForecast ? (
+                <ul className="list-disc ml-6">
+                  {lstmForecast.map((day) => (
+                    <li key={day.day_offset}>
+                      Day {day.day_offset}: {day.predicted_quantity} units
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">Training LSTM model...</p>
+              )}
+
+  </div>
+)}
           {status === "succeeded" && visibleItems.length > 0 && (
             <table className="w-full text-sm text-left">
               <thead className="text-gray-500 border-b">
