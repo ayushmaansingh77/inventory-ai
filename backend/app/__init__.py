@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_bcrypt import Bcrypt
+from flask_mail import Mail
 
 import os
 
@@ -13,7 +14,7 @@ db = SQLAlchemy()
 jwt = JWTManager()
 bcrypt=Bcrypt()
 migrate=Migrate()#to create tabel we userd create_all for the first table as a short cut
-
+mail = Mail()
 def create_app():
     load_dotenv()
 
@@ -23,11 +24,17 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER")
+    app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", 2525))
+    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+    app.config["MAIL_USE_TLS"] = True
 
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
     bcrypt.init_app(app)
+    mail.init_app(app)   
     CORS(app)
 
     with app.app_context():

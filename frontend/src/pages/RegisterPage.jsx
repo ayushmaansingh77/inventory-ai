@@ -5,8 +5,13 @@ function RegisterPage() {
   const navigate = useNavigate()
 
   return (
-    <RegisterForm onRegisterSuccess={() => navigate("/login")} />
-    // Successful registration ke baad user login karke token generate karega
+    <RegisterForm
+      onRegisterSuccess={() =>
+        navigate("/login", {
+          state: { message: "Registration successful! Please check your email to verify your account before logging in.ThankYou!!" }
+        })
+      }
+    />
   )
 }
 

@@ -74,3 +74,28 @@ def get_current_user():
         "username": user.username,
         "email": user.email
     }), 200
+from app.services.auth_service import verify_user_email, resend_verification_email
+
+@auth_bp.route("/verify/<token>", methods=["GET"])
+def verify_email(token):
+    user, error = verify_user_email(token)
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify({"message": "Email verified successfully. You can now log in."}), 200
+
+
+@auth_bp.route("/resend-verification", methods=["POST"])
+def resend_verification():
+    data = request.get_json()
+
+    if not data or "email" not in data:
+        return jsonify({"error": "Email is required"}), 400
+
+    success, error = resend_verification_email(data["email"])
+
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify({"message": "Verification email sent. Please check your inbox."}), 200

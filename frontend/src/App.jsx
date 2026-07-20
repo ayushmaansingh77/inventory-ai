@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage"
 import RegisterPage from "./pages/RegisterPage"
 import Dashboard from "./pages/Dashboard"
 import ProtectedRoute from "./components/ProtectedRoute"
+import VerifyEmailPage from "./pages/VerifyEmailPage"
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "")
@@ -24,6 +25,7 @@ function App() {
     <Provider store={store}>
       <BrowserRouter>
         <Routes>
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route
             path="/login"
             element={token ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} />}
