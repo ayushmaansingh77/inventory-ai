@@ -1,1 +1,43 @@
 @import "tailwindcss";
+.floating-box {
+
+    transform-style: preserve-3d;
+
+    will-change: transform, opacity;
+
+   
+}
+
+
+
+@keyframes burst {
+  0% {
+    opacity: 0;
+    transform:
+      translate(-50%, -50%)
+      translate3d(0, 0, -1200px)
+      rotateZ(var(--rot))
+      scale(0.05);
+    filter: blur(3px);
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translate(-50%, -50%)
+      translate3d(
+        calc(var(--dx) * 350px),
+        calc(var(--dy) * 350px),
+        900px
+      )
+      rotateX(720deg)
+      rotateY(720deg)
+      rotateZ(720deg)
+      scale(5);
+    filter: blur(0);
+  }
+}

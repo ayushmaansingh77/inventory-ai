@@ -1,4 +1,4 @@
-# backend/app/services/forecasting_service.py
+
 import numpy as np
 from app.models.inventory import InventoryItem
 from app.models.sales_record import SalesRecord
@@ -39,3 +39,27 @@ def get_forecast_for_item(user_id, item_id, days_ahead=7):
     "predicted_quantity": predicted
 }) 
     return forecast, None
+
+def compute_inventory_status(current_stock: int, reorder_level: int, predicted_daily_sales: float) -> dict:
+    """
+    Given current stock, reorder level, and predicted daily sales,
+    return days until stockout and an inventory status label.
+    """
+    if predicted_daily_sales <= 0:
+        # No predicted demand? stockout isn't imminent from sales
+        days_until_stockout = None
+    else:
+        days_until_stockout = round(current_stock / predicted_daily_sales, 1)
+
+    if current_stock == 0:
+        status = "Out of Stock"
+    elif current_stock <= reorder_level:
+        status = "Low Stock"
+    else:
+        status = "Healthy"
+
+    return {
+        "days_until_stockout": days_until_stockout,
+        "status": status,
+    }
+

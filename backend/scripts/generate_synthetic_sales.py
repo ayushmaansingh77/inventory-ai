@@ -61,29 +61,37 @@ def generate_sales_for_item(item, num_days=90, start_date=None):
 def run():
     
     
+    
     app = create_app()
     with app.app_context():
         items = InventoryItem.query.all()
         if not items:
             print("No items found in the database. Please seed inventory items first.")
             return
-            
-        print(f"Generating {90} days of sales data for {len(items)} items...")
-        
+
+        # Only seed items that don't already have sales history
+        items_needing_data = [
+            item for item in items
+            if SalesRecord.query.filter_by(item_id=item.id).count() == 0
+        ]
+
+        if not items_needing_data:
+            print("All items already have sales history. Nothing to do.")
+            return
+
+        print(f"Generating 90 days of sales data for {len(items_needing_data)} item(s)...")
+
         all_records = []
-        # Anchor the end date to today (July 9, 2026)
         start_date = date.today() - timedelta(days=90)
-        
-        for item in items:
+
+        for item in items_needing_data:
             item_records = generate_sales_for_item(item, num_days=90, start_date=start_date)
             all_records.extend(item_records)
-            
+
         print(f"Bulk inserting {len(all_records)} sales records...")
-        
-        # bulk_save_objects is significantly faster than db.session.add_all() for large arrays
         db.session.bulk_save_objects(all_records)
         db.session.commit()
-        
+
         print("Synthetic sales data generation complete!")
 
 if __name__ == "__main__":

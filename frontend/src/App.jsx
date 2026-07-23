@@ -7,6 +7,7 @@ import RegisterPage from "./pages/RegisterPage"
 import Dashboard from "./pages/Dashboard"
 import ProtectedRoute from "./components/ProtectedRoute"
 import VerifyEmailPage from "./pages/VerifyEmailPage"
+import LandingPage from "./pages/LandingPage"
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "")
@@ -27,6 +28,10 @@ function App() {
         <Routes>
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route
+            path="/"
+            element={token ? <Navigate to="/dashboard" /> : <LandingPage />}
+          />
+          <Route
             path="/login"
             element={token ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} />}
           />
@@ -41,10 +46,6 @@ function App() {
                 <Dashboard onLogout={handleLogout} />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/"
-            element={<Navigate to={token ? "/dashboard" : "/login"} />}
           />
         </Routes>
       </BrowserRouter>

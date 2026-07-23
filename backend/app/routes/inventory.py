@@ -4,7 +4,7 @@ from app.services import inventory_services
 from app.services.forecasting_service import get_forecast_for_item
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
 from app.services.lstm_forecasting_service import get_lstm_forecast_for_item
-
+from app.services.forecasting_service import compute_inventory_status
 @inventory_bp.route("/", methods=["GET"])
 @jwt_required()
 def list_items():
@@ -98,27 +98,24 @@ def delete_item_route(item_id):
 @jwt_required()
 def get_forecast(item_id):
     user_id = get_jwt_identity()
-   
-    days_ahead=request.args.get(
+
+    days_ahead = request.args.get(
         "days_ahead",
         default=7,
         type=int
     )
-#basic validation check
-    if days_ahead <1:
-     return jsonify({
-        "error": "days ahead musst be at least 1."
-
-    }),400
+    # basic validation check
+    if days_ahead < 1:
+        return jsonify({
+            "error": "days ahead musst be at least 1."
+        }), 400
 
     forecast, error = get_forecast_for_item(
-    user_id,
-    item_id,
-    days_ahead
-
-)
+        user_id,
+        item_id,
+        days_ahead
+    )
     if error:
-
         # Item doesn't exist or doesn't belong to this user
         if error == "Item not found":
             return jsonify({
@@ -130,13 +127,35 @@ def get_forecast(item_id):
             "error": error
         }), 400
 
-    # Success
-    return jsonify({
-        "forecast": forecast
-    }), 200
-    
-    #calling the service
+    # Need current_stock / reorder_level to compute stockout status.
+    # get_forecast_for_item doesn't return the item itself, so fetch it
+    # separately via the existing inventory service (already used above/elsewhere).
+    item, item_error = inventory_services.get_item_by_id(user_id, item_id)
+    if item_error:
+        # Extremely unlikely to hit this after get_forecast_for_item already
+        # succeeded, but handle it defensively rather than assuming.
+        return jsonify({"error": item_error}), 404
 
+    # forecast[0] is tomorrow prediction day_offset == 1)
+    predicted_tomorrow = forecast[0]["predicted_quantity"]
+
+    stockout_info = compute_inventory_status(
+        current_stock=item.quantity,
+        reorder_level=item.reorder_level,
+        predicted_daily_sales=predicted_tomorrow,
+    )
+
+    #
+    return jsonify({
+        "forecast": forecast,
+        "predicted_tomorrow": predicted_tomorrow,
+        "current_stock": item.quantity,
+        "reorder_level": item.reorder_level,
+        "days_until_stockout": stockout_info["days_until_stockout"],
+        "status": stockout_info["status"],
+    }), 200
+
+    # calling the service
 
 
 # #Every route below the JWT check follows this shape:
@@ -161,4 +180,23 @@ def get_lstm_forecast(item_id):
             return jsonify({"error": error}), 404
         return jsonify({"error": error}), 400
 
-    return jsonify({"forecast": forecast}), 200
+    item, item_error = inventory_services.get_item_by_id(user_id, item_id)
+    if item_error:
+        return jsonify({"error": item_error}), 404
+
+    predicted_tomorrow = forecast[0]["predicted_quantity"]
+
+    stockout_info = compute_inventory_status(
+        current_stock=item.quantity,
+        reorder_level=item.reorder_level,
+        predicted_daily_sales=predicted_tomorrow,
+    )
+
+    return jsonify({
+        "forecast": forecast,
+        "predicted_tomorrow": predicted_tomorrow,
+        "current_stock": item.quantity,
+        "reorder_level": item.reorder_level,
+        "days_until_stockout": stockout_info["days_until_stockout"],
+        "status": stockout_info["status"],
+    }), 200
