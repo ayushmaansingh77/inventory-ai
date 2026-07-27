@@ -12,7 +12,11 @@ class InventoryItem(db.Model):
     reorder_level = db.Column(db.Integer, default=10)             # alert threshold
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
+    sales_records = db.relationship(
+    "SalesRecord",
+    backref="item",
+    cascade="all, delete-orphan"
+)
     # Foreign key — links item to its owner
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     def to_dict(self):

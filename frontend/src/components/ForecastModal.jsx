@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axiosInstance";
 import { X, TrendingUp, BrainCircuit } from "lucide-react";
+import ForecastChart from "./ForecastChart";
 
 function ForecastModal({ item, onClose }) {
   const [linearForecast, setLinearForecast] = useState([]);
@@ -136,12 +137,7 @@ function ForecastModal({ item, onClose }) {
                     {Math.round(linearForecast[0]?.predicted_quantity ?? 0)} units
                   </h2>
                 </div>
-                {linearForecast.map((day) => (
-                  <div key={day.day_offset} className="flex justify-between py-2 border-b">
-                    <span>Day {day.day_offset}</span>
-                    <span className="font-semibold">{Math.round(day.predicted_quantity)} units</span>
-                  </div>
-                ))}
+               <ForecastChart data={linearForecast} color="#16a34a" />
               </>
             )}
           </section>
@@ -165,12 +161,7 @@ function ForecastModal({ item, onClose }) {
                     {Math.round(lstmForecast[0]?.predicted_quantity ?? 0)} units
                   </h2>
                 </div>
-                {lstmForecast.map((day) => (
-                  <div key={day.day_offset} className="flex justify-between py-2 border-b">
-                    <span>Day {day.day_offset}</span>
-                    <span className="font-semibold">{Math.round(day.predicted_quantity)} units</span>
-                  </div>
-                ))}
+               <ForecastChart data={linearForecast} color="#16a34a" />
               </>
             )}
           </section>
