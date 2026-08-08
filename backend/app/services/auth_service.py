@@ -27,7 +27,7 @@ def register_user(username, email, password):
     token = generate_verification_token(user.email)
 
     # Build the link the user will click from their inbox
-    verify_link = f"http://localhost:5173/verify-email?token={token}"
+    verify_link = f"http://localhost:3000/verify-email?token={token}"
 
     # Compose and send the actual email via Mailtrap
     msg = Message(
@@ -80,7 +80,7 @@ def resend_verification_email(email):
         return None, "This account is already verified."
 
     token = generate_verification_token(user.email)
-    verify_link = f"http://localhost:5173/verify-email?token={token}"
+    verify_link = f"http://localhost:3000/verify-email?token={token}"
 
     msg = Message(
         subject="Verify your StockMind account",

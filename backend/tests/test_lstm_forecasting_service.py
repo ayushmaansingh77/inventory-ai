@@ -46,3 +46,58 @@ def test_predictions_are_roughly_in_range_of_historical_data(app, item_with_hist
 
     for day in forecast:
         assert day["predicted_quantity"] >= historical_min * 0.3
+
+
+def test_model_is_cached_across_calls(app, item_with_history, user, monkeypatch):
+    """A second request for the same unchanged item must NOT retrain the model."""
+    from app.services import lstm_forecasting_service as service
+
+    train_count = 0
+    original_train = service._train_model
+
+    def counting_train(normalized_values):
+        nonlocal train_count
+        train_count += 1
+        return original_train(normalized_values)
+
+    monkeypatch.setattr(service, "_train_model", counting_train)
+
+    forecast1, err1 = get_lstm_forecast_for_item(user.id, item_with_history.id, days_ahead=3)
+    forecast2, err2 = get_lstm_forecast_for_item(user.id, item_with_history.id, days_ahead=3)
+
+    assert err1 is None and err2 is None
+    assert train_count == 1  # reused the cached model instead of retraining
+    assert forecast1 == forecast2  # same cached model -> identical predictions
+
+
+def test_cache_invalidates_when_sales_change(app, item_with_history, user, monkeypatch):
+    """Adding a new sales record changes the training data, forcing a retrain."""
+    from datetime import date
+    from app import db
+    from app.services import lstm_forecasting_service as service
+
+    train_count = 0
+    original_train = service._train_model
+
+    def counting_train(normalized_values):
+        nonlocal train_count
+        train_count += 1
+        return original_train(normalized_values)
+
+    monkeypatch.setattr(service, "_train_model", counting_train)
+
+    forecast, error = get_lstm_forecast_for_item(user.id, item_with_history.id)
+    assert error is None
+    assert train_count == 1
+
+    # A brand-new sale on a fresh day -> data changed -> must retrain
+    db.session.add(SalesRecord(
+        item_id=item_with_history.id,
+        date=date.today(),
+        quantity_sold=100,
+    ))
+    db.session.commit()
+
+    forecast, error = get_lstm_forecast_for_item(user.id, item_with_history.id)
+    assert error is None
+    assert train_count == 2

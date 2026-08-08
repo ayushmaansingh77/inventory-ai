@@ -12,9 +12,9 @@ from flask import current_app
 
 def generate_verification_token(email):
     """
-    Creates a signed verification token containing the user's email.
+    creates a signed verification token containing the user's email.
 
-    The token is NOT encrypted,it is signed.
+    The token is not encrypted,it is signed.
     this means users can't modify it without invalidating the signatur
     """
 

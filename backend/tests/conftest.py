@@ -18,6 +18,10 @@ def app():
         yield app
         db.session.remove()
         db.drop_all()
+        # Cached LSTM models persist across tests otherwise. Imported lazily so
+        # the whole suite doesn't pay TensorFlow's startup cost.
+        from app.services.lstm_forecasting_service import clear_model_cache
+        clear_model_cache()
 
 
 @pytest.fixture
