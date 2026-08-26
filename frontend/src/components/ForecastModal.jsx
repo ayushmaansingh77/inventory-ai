@@ -4,6 +4,8 @@ import { X, TrendingUp, BrainCircuit } from "lucide-react";
 import ForecastChart from "./ForecastChart";
 
 function ForecastModal({ item, onClose }) {
+  const [saleQuantity, setSaleQuantity] = useState("");
+const [saleStatus, setSaleStatus] = useState("");
   const [linearForecast, setLinearForecast] = useState([]);
   const [lstmForecast, setLstmForecast] = useState([]);
 
@@ -98,6 +100,43 @@ function ForecastModal({ item, onClose }) {
     );
   };
 
+  const handleLogSale = async () => {
+  const quantity = Number(saleQuantity);
+  if (!quantity || quantity <= 0) return;
+
+  setSaleStatus("saving");
+  try {
+    await api.post(`/inventory/${item.id}/sales`, { quantity_sold: quantity });
+    setSaleStatus("saved");
+    setSaleQuantity("");
+    setLoadingLinear(true);
+    setLoadingLstm(true);
+    const [linearRes, lstmRes] = await Promise.all([
+      api.get(`/inventory/${item.id}/forecast`),
+      api.get(`/inventory/${item.id}/forecast/lstm`),
+    ]);
+    setLinearForecast(linearRes.data.forecast);
+    setLinearSummary({
+      currentStock: linearRes.data.current_stock,
+      reorderLevel: linearRes.data.reorder_level,
+      daysUntilStockout: linearRes.data.days_until_stockout,
+      status: linearRes.data.status,
+    });
+    setLstmForecast(lstmRes.data.forecast);
+    setLstmSummary({
+      currentStock: lstmRes.data.current_stock,
+      reorderLevel: lstmRes.data.reorder_level,
+      daysUntilStockout: lstmRes.data.days_until_stockout,
+      status: lstmRes.data.status,
+    });
+  } catch (err) {
+    setSaleStatus("error");
+  } finally {
+    setLoadingLinear(false);
+    setLoadingLstm(false);
+  }
+};
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center"
@@ -116,7 +155,25 @@ function ForecastModal({ item, onClose }) {
             <X />
           </button>
         </div>
-
+     <div className="px-8 py-4 bg-gray-50 border-b flex items-center gap-3">
+  <input
+    type="number"
+    min="1"
+    placeholder="Units sold"
+    value={saleQuantity}
+    onChange={(e) => setSaleQuantity(e.target.value)}
+    className="border rounded-lg px-3 py-2 w-32"
+  />
+  <button
+    onClick={handleLogSale}
+    disabled={saleStatus === "saving"}
+    className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+  >
+    {saleStatus === "saving" ? "Logging..." : "Log Sale"}
+  </button>
+  {saleStatus === "saved" && <span className="text-green-600 text-sm">Sale logged</span>}
+  {saleStatus === "error" && <span className="text-red-600 text-sm">Failed to log sale</span>}
+</div>
         <div className="p-8 space-y-8">
           <section className="border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
@@ -161,7 +218,7 @@ function ForecastModal({ item, onClose }) {
                     {Math.round(lstmForecast[0]?.predicted_quantity ?? 0)} units
                   </h2>
                 </div>
-               <ForecastChart data={linearForecast} color="#16a34a" />
+               <ForecastChart data={lstmForecast} color="#16a34a" />
               </>
             )}
           </section>

@@ -5,6 +5,8 @@ from app.services.forecasting_service import get_forecast_for_item
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
 from app.services.lstm_forecasting_service import get_lstm_forecast_for_item
 from app.services.forecasting_service import compute_inventory_status
+from app.services.sales_service import log_sale
+from datetime import date
 @inventory_bp.route("/", methods=["GET"])
 @jwt_required()
 def list_items():
@@ -159,7 +161,7 @@ def get_forecast(item_id):
 
 
 # #Every route below the JWT check follows this shape:
-# pythonvalue, error = inventory_service.some_function(...)
+# pythonvalue, error = inventory_service.some_function(...
 # if error:
 #     return jsonify({"error": error}), <error_code>
 # return jsonify(value.to_dict()), <success_code>
@@ -200,3 +202,29 @@ def get_lstm_forecast(item_id):
         "days_until_stockout": stockout_info["days_until_stockout"],
         "status": stockout_info["status"],
     }), 200
+
+
+
+@inventory_bp.route("/<int:item_id>/sales", methods=["POST"])
+@jwt_required()
+def log_sale_route(item_id):
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    if not data or "quantity_sold" not in data:
+        return jsonify({"error": "quantity_sold is required"}), 400
+
+    sale_date = None
+    if data.get("date"):
+        try:
+            sale_date = date.fromisoformat(data["date"])
+        except ValueError:
+            return jsonify({"error": "date must be in YYYY-MM-DD format"}), 400
+
+    record, error = log_sale(user_id, item_id, data.get("quantity_sold"), sale_date)
+
+    if error:
+        status = 404 if error == "Item not found" else 400
+        return jsonify({"error": error}), status
+
+    return jsonify(record.to_dict()), 201

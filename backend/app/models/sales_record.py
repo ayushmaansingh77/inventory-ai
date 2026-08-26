@@ -19,7 +19,6 @@ class SalesRecord(db.Model):
         "item_id":self.item_id,
         "date":self.date.isoformat() if self.date else None, # TODO: ask TA why this returns a built-in method error
         "quantity_sold":self.quantity_sold,
-        "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat()
+        
         
     }
