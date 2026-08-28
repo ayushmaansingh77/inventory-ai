@@ -1,6 +1,6 @@
 # StockMind
 
-A full-stack inventory management system with real demand forecasting — built to go beyond basic CRUD and actually predict what a business needs to reorder, using both a classical statistical model and a neural network trained on sales history.
+A full-stack inventory management system with real demand forecasting , built to go beyond basic CRUD and actually predict what a business needs to reorder, using both a classical statistical model and a neural network trained on sales history.
 
 I built this as a portfolio project to practice building something end-to-end: a real backend with authentication and business logic, a React frontend with proper state management, an actual machine learning feature (not a toy), and full containerization for deployment.
 
@@ -23,11 +23,11 @@ I built this as a portfolio project to practice building something end-to-end: a
 
 ## Why the forecasting works the way it does
 
-New inventory items don't have any sales history — there's no way around that "cold start" problem for a portfolio project with no real customers yet. Rather than fake a finished feature, I built a synthetic sales data generator (trend + weekly seasonality + random noise) to create realistic-looking history to train and demonstrate the forecasting models against. This is the same thing you'd do in a real job before enough production data exists — it's a documented, deliberate choice, not a shortcut.
+New inventory items don't have any sales history — there's no way around that "cold start" problem for a portfolio project with no real customers yet. Rather than fake a finished feature, I built a synthetic sales data generator (trend + weekly seasonality + random noise) to create realistic-looking history to train and demonstrate the forecasting models against. This is the same thing you'd do in a real job before enough production data exists  it's a documented, deliberate choice, not a shortcut.
 
-I built the linear regression baseline first, on purpose, as a safety net — if the LSTM (a much bigger, riskier undertaking) ran out of time or failed to train well, the app would still ship with a genuinely working forecasting feature. The LSTM ended up working too, and comparing the two became a feature in its own right.
+I built the linear regression baseline first, on purpose, as a safety net  if the LSTM (a much bigger, riskier undertaking) ran out of time or failed to train well, the app would still ship with a genuinely working forecasting feature. The LSTM ended up working too, and comparing the two became a feature in its own right.
 
-One real bug worth mentioning: early on, my LSTM was predicting values wildly lower than the actual sales data (e.g. predicting ~2 units/day against real data averaging 30-50). I found this by comparing the two models' outputs side by side and noticing the gap was too large to be a legitimate disagreement between approaches. The cause was feeding raw sales counts straight into the network without normalizing them first — the model never converged properly within the training budget. Scaling values to a 0-1 range before training (and scaling predictions back afterward) fixed it, and I added an automated test specifically to catch this class of bug if it ever regresses.
+One real bug worth mentioning: early on, my LSTM was predicting values wildly lower than the actual sales data (e.g. predicting ~2 units/day against real data averaging 30-50). I found this by comparing the two models' outputs side by side and noticing the gap was too large to be a legitimate disagreement between approaches. The cause was feeding raw sales counts straight into the network without normalizing them first  the model never converged properly within the training budget. Scaling values to a 0-1 range before training (and scaling predictions back afterward) fixed it, and I added an automated test specifically to catch this class of bug if it ever regresses.
 
 ---
 
@@ -128,14 +128,14 @@ npm run dev
 
 Being upfront about what's genuinely incomplete or simplified, rather than presenting the project as more finished than it is:
 
-- **The LSTM retrains from scratch on every single forecast request.** There's no model caching yet — fine for a demo, a real performance problem at any meaningful scale. Caching trained models per item (and only retraining when new sales data arrives) is the natural next step.
-- **No user-facing way to log a real sale yet.** Sales history currently only comes from the synthetic data generator and demo seed script — a `POST /api/inventory/<id>/sales` endpoint and a small UI for it is a reasonable next addition.
+- **The LSTM retrains from scratch on every single forecast request.** There's no model caching yet  fine for a demo, a real performance problem at any meaningful scale. Caching trained models per item (and only retraining when new sales data arrives) is the natural next step.
+- **No user-facing way to log a real sale yet.** Sales history currently only comes from the synthetic data generator and demo seed script  a `POST /api/inventory/<id>/sales` endpoint and a small UI for it is a reasonable next addition.
 - **No bulk import.** Adding inventory items is one at a time through the UI; CSV/Excel bulk upload was scoped conceptually but not built.
-- **No CI/CD pipeline.** This was a deliberate scope cut, not an oversight — I chose to build a working, honestly-tested Docker setup over a rushed, unreliable pipeline.
+- **No CI/CD pipeline.** This was a deliberate scope cut, not an oversight  I chose to build a working, honestly-tested Docker setup over a rushed, unreliable pipeline.
 - **No Google/OAuth sign-in.** Email/password with verification is the only auth method currently.
 
 ---
 
 ## What I'd Do Differently
 
-If starting over, I'd write the automated test suite earlier — a test-isolation bug (a database config override that didn't take effect in time) once caused my local development database to actually get wiped during a test run. It was fully recoverable through migration history, but it was a genuinely useful lesson in verifying test isolation actually works, rather than assuming it does because the code reads correctly.
+If starting over, I'd write the automated test suite earlier ; a test-isolation bug (a database config override that didn't take effect in time) once caused my local development database to actually get wiped during a test run. It was fully recoverable through migration history, but it was a genuinely useful lesson in verifying test isolation actually works, rather than assuming it does because the code reads correctly.
