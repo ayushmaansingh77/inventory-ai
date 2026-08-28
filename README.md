@@ -4,7 +4,7 @@ A full-stack inventory management system with real demand forecasting , built to
 
 I built this as a portfolio project to practice building something end-to-end: a real backend with authentication and business logic, a React frontend with proper state management, an actual machine learning feature (not a toy), and full containerization for deployment.
 
-**[Live Demo](#)** — *(add your live link here once hosting is confirmed)*
+**[Live Demo](#)** — **(https://stockmind-rho.vercel.app/)**
 
 ---
 
