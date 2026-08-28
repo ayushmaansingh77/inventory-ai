@@ -35,7 +35,7 @@ def create_app():
     migrate.init_app(app, db)
     bcrypt.init_app(app)
     mail.init_app(app)   
-    CORS(app)
+    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
     with app.app_context():
         from app.models.user import User
