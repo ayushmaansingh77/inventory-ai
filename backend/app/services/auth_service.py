@@ -34,7 +34,6 @@ def register_user(username, email, password):
     # Compose and send the actual email via Mailtrap
     msg = Message(
         subject="Verify your StockMind account",
-        sender="noreply@stockmind.com",
         recipients=[user.email],
         body=f"Click this link to verify your account: {verify_link}"
     )
@@ -87,7 +86,6 @@ def resend_verification_email(email):
 
     msg = Message(
         subject="Verify your StockMind account",
-        sender="noreply@stockmind.com",
         recipients=[user.email],
         body=f"Click this link to verify your account: {verify_link}"
     )

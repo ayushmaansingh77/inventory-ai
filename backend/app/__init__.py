@@ -34,6 +34,10 @@ def create_app():
     app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
     app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
     app.config["MAIL_USE_TLS"] = True
+    # Defaults to the Mailtrap sandbox sender; override in .env when
+    # switching to a real SMTP provider (e.g. Gmail requires the sender to
+    # match MAIL_USERNAME, or the send is rejected).
+    app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER", "noreply@stockmind.com")
     # Flask-Mail bakes its suppress-send flag into a state object at
     # mail.init_app() time (below), so setting app.config["TESTING"] = True
     # *after* create_app() returns (as tests previously did) has no effect

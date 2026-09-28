@@ -36,7 +36,6 @@ def send_low_stock_alert(user_id):
 
     msg = Message(
         subject=f"StockMind: {len(low_stock_items)} item(s) need reordering",
-        sender="noreply@stockmind.com",
         recipients=[user.email],
         body=body,
     )
