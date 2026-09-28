@@ -8,7 +8,7 @@ function Spinner({ size = "md", className = "" }) {
 
   return (
     <div
-      className={`inline-block ${sizeClasses[size]} border-blue-500 border-t-transparent rounded-full animate-spin ${className}`}
+      className={`inline-block ${sizeClasses[size]} border-teal-600 border-t-transparent rounded-full animate-spin ${className}`}
     />
   )
 }

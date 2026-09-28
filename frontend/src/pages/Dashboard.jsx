@@ -9,6 +9,10 @@ import NavBar from "../components/NavBar"
 import StatsCards from "../components/StatsCards"
 import LowStockPanel from "../components/LowStockPanel"
 import InventoryTable from "../components/InventoryTable"
+import ConfirmDialog from "../components/ConfirmDialog"
+import ImportModal from "../components/ImportModal"
+import { useToast } from "../hooks/useToast"
+import { Upload, Download } from "lucide-react"
 
 function Dashboard({ onLogout }) {
   const [searchTerm, setSearchTerm] = useState("")
@@ -20,6 +24,9 @@ function Dashboard({ onLogout }) {
 
   const dispatch = useDispatch()
   const { items, status, error } = useSelector((state) => state.inventory)
+  const showToast = useToast()
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [importOpen, setImportOpen] = useState(false)
 
   const mostUrgentItem = useMemo(() => {
     const lowStockItems = items.filter(
@@ -68,26 +75,57 @@ function Dashboard({ onLogout }) {
     setEditData({ ...editData, [e.target.name]: e.target.value })
   }
 
-  const saveEdit = (id) => {
-    dispatch(
-      updateItem({
-        id,
-        data: {
-          name: editData.name,
-          sku: editData.sku,
-          quantity: Number(editData.quantity),
-          unit_price: Number(editData.unit_price),
-          reorder_level: Number(editData.reorder_level),
-        },
-      })
-    )
+  const saveEdit = async (id) => {
+    try {
+      await dispatch(
+        updateItem({
+          id,
+          data: {
+            name: editData.name,
+            sku: editData.sku,
+            quantity: Number(editData.quantity),
+            unit_price: Number(editData.unit_price),
+            reorder_level: Number(editData.reorder_level),
+          },
+        })
+      ).unwrap()
+      showToast("Item updated.", "success")
+    } catch (err) {
+      showToast(err || "Failed to update item.", "error")
+    }
     cancelEdit()
   }
 
   const handleDelete = (id) => {
-    const confirmed = window.confirm("Delete this item?")
-    if (!confirmed) return
-    dispatch(deleteItem(id))
+    setDeleteTarget(id)
+  }
+
+  const confirmDelete = async () => {
+    const id = deleteTarget
+    setDeleteTarget(null)
+    try {
+      await dispatch(deleteItem(id)).unwrap()
+      showToast("Item deleted.", "success")
+    } catch (err) {
+      showToast(err || "Failed to delete item.", "error")
+    }
+  }
+
+  const handleExport = async (format) => {
+    try {
+      const res = await api.get(`/inventory/export?format=${format}`, { responseType: "blob" })
+      const blob = new Blob([res.data])
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = format === "xlsx" ? "inventory_export.xlsx" : "inventory_export.csv"
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      showToast("Failed to export inventory.", "error")
+    }
   }
 
   useEffect(() => {
@@ -153,6 +191,30 @@ function Dashboard({ onLogout }) {
           mostUrgentItem={mostUrgentItem}
         />
 
+        <div className="flex flex-wrap justify-end gap-2 mb-2">
+          <button
+            onClick={() => handleExport("csv")}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 px-4 py-2 text-sm font-semibold transition"
+          >
+            <Download size={16} />
+            Export CSV
+          </button>
+          <button
+            onClick={() => handleExport("xlsx")}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 px-4 py-2 text-sm font-semibold transition"
+          >
+            <Download size={16} />
+            Export Excel
+          </button>
+          <button
+            onClick={() => setImportOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-teal-700 text-teal-700 hover:bg-teal-50 px-4 py-2 text-sm font-semibold transition"
+          >
+            <Upload size={16} />
+            Import from Excel/CSV
+          </button>
+        </div>
+
         <AddItemForm />
 
         <LowStockPanel items={items} />
@@ -177,6 +239,17 @@ function Dashboard({ onLogout }) {
           handleDelete={handleDelete}
         />
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete this item?"
+        message="This will permanently remove the item and its sales history. This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
 
       <Footer />
     </div>

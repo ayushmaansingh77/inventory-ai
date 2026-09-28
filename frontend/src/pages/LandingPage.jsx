@@ -1,8 +1,21 @@
 import { Link } from "react-router-dom"
 import Footer from "../components/Footer"
 import FloatingBox from "../components/FloatingBox"
-import { useMemo } from "react";
+import { useState } from "react";
 import brandlogo from "../assets/brandlogo.svg"
+
+function generateFloatingBoxes(count) {
+  return Array.from({ length: count }, () => ({
+    size: 15 + Math.random() * 45,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    dx: Math.random() * 2 - 1,
+    dy: Math.random() * 2 - 1,
+    rotate: Math.random() * 360,
+    delay: Math.random() * 8,
+    duration: 6 + Math.random() * 3,
+  }))
+}
 const features = [
   {
     title: "Real-Time Inventory Tracking",
@@ -27,24 +40,21 @@ const features = [
 ]
 
 function LandingPage() {
-    const floatingBoxes = useMemo(
-  () =>
-    Array.from({ length: 30 }, () => ({
-      size: 15 + Math.random() * 45,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      dx: Math.random() * 2 - 1,
-      dy: Math.random() * 2 - 1,
-      rotate: Math.random() * 360,
-      delay: Math.random() * 8,
-      duration: 6 + Math.random() * 3,
-    })),
-  []
-);
+  // Fewer particles on small screens (perf), and none at all when the
+  // viewer prefers reduced motion (accessibility) — computed once via a
+  // lazy useState initializer rather than useMemo, since generating random
+  // values during render is otherwise flagged as an impure render.
+  const [floatingBoxes] = useState(() => {
+    if (typeof window === "undefined") return []
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return []
+    const count = window.innerWidth < 640 ? 10 : 30
+    return generateFloatingBoxes(count)
+  })
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Nav */}
-      <nav className="px-8 py-4 flex justify-between items-center border-b border-gray-100">
+      <nav className="px-4 sm:px-8 py-4 flex justify-between items-center border-b border-gray-100">
         <div className="flex items-center gap-2">
           <img src={brandlogo} alt="StockMind" className="w-10 h-10" />
           <span className="text-xl font-bold text-gray-800">StockMind</span>

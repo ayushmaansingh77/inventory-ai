@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import api from "../api/axiosInstance";
 import { X, TrendingUp, BrainCircuit } from "lucide-react";
 import ForecastChart from "./ForecastChart";
+import { fetchItems } from "../features/inventory/inventorySlice";
+import { useModalA11y } from "../hooks/useModalA11y";
 
 function ForecastModal({ item, onClose }) {
+  const dispatch = useDispatch();
+  const modalRef = useModalA11y(onClose, !!item);
   const [saleQuantity, setSaleQuantity] = useState("");
 const [saleStatus, setSaleStatus] = useState("");
   const [linearForecast, setLinearForecast] = useState([]);
@@ -17,6 +22,7 @@ const [saleStatus, setSaleStatus] = useState("");
 
   const [linearError, setLinearError] = useState("");
   const [lstmError, setLstmError] = useState("");
+  const [saleError, setSaleError] = useState("");
 
   useEffect(() => {
     if (!item) return;
@@ -105,12 +111,17 @@ const [saleStatus, setSaleStatus] = useState("");
   if (!quantity || quantity <= 0) return;
 
   setSaleStatus("saving");
+  setSaleError("");
   try {
     await api.post(`/inventory/${item.id}/sales`, { quantity_sold: quantity });
     setSaleStatus("saved");
     setSaleQuantity("");
     setLoadingLinear(true);
     setLoadingLstm(true);
+    // A logged sale decrements the item's stock server-side, so the
+    // inventory table (backed by Redux) needs a refetch too, not just
+    // the forecast summaries below.
+    dispatch(fetchItems());
     const [linearRes, lstmRes] = await Promise.all([
       api.get(`/inventory/${item.id}/forecast`),
       api.get(`/inventory/${item.id}/forecast/lstm`),
@@ -131,6 +142,7 @@ const [saleStatus, setSaleStatus] = useState("");
     });
   } catch (err) {
     setSaleStatus("error");
+    setSaleError(err.response?.data?.error || "Failed to log sale.");
   } finally {
     setLoadingLinear(false);
     setLoadingLstm(false);
@@ -139,24 +151,31 @@ const [saleStatus, setSaleStatus] = useState("");
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center"
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="forecast-modal-title"
+        tabIndex={-1}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center px-8 py-5 border-b">
+        <div className="flex justify-between items-center px-4 sm:px-8 py-5 border-b">
           <div>
-            <h2 className="text-2xl font-bold">Forecast Analysis</h2>
+            <h2 id="forecast-modal-title" className="text-2xl font-bold">Forecast Analysis</h2>
             <p className="text-gray-500">{item.name}</p>
           </div>
-          <button onClick={onClose} className="rounded-full hover:bg-gray-100 p-2">
+          <button onClick={onClose} aria-label="Close forecast analysis" className="rounded-full hover:bg-gray-100 p-2">
             <X />
           </button>
         </div>
-     <div className="px-8 py-4 bg-gray-50 border-b flex items-center gap-3">
+     <div className="px-4 sm:px-8 py-4 bg-gray-50 border-b flex flex-wrap items-center gap-3">
+  <label htmlFor="sale-quantity" className="sr-only">Units sold</label>
   <input
+    id="sale-quantity"
     type="number"
     min="1"
     placeholder="Units sold"
@@ -172,9 +191,9 @@ const [saleStatus, setSaleStatus] = useState("");
     {saleStatus === "saving" ? "Logging..." : "Log Sale"}
   </button>
   {saleStatus === "saved" && <span className="text-green-600 text-sm">Sale logged</span>}
-  {saleStatus === "error" && <span className="text-red-600 text-sm">Failed to log sale</span>}
+  {saleStatus === "error" && <span className="text-red-600 text-sm">{saleError}</span>}
 </div>
-        <div className="p-8 space-y-8">
+        <div className="p-4 sm:p-8 space-y-8">
           <section className="border rounded-xl p-6">
             <div className="flex items-center gap-3 mb-5">
               <TrendingUp className="text-green-600" />

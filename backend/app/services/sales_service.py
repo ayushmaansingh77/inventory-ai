@@ -19,10 +19,15 @@ def log_sale(user_id, item_id, quantity_sold, sale_date=None):
     if not item:
         return None, "Item not found"
 
+    if quantity_sold > item.quantity:
+        return None, f"Cannot log a sale of {quantity_sold} units — only {item.quantity} in stock"
+
     if sale_date is None:
         sale_date = date_cls.today()
 
     existing = SalesRecord.query.filter_by(item_id=item.id, date=sale_date).first()
+
+    item.quantity -= quantity_sold
 
     if existing:
         existing.quantity_sold += quantity_sold

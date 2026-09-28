@@ -1,11 +1,38 @@
+import { useState } from "react"
+import api from "../api/axiosInstance"
+import { useToast } from "../hooks/useToast"
+
 function LowStockPanel({ items }) {
+  const showToast = useToast()
+  const [sending, setSending] = useState(false)
   const lowStockItems = items.filter((item) => item.quantity <= item.reorder_level)
 
   if (lowStockItems.length === 0) return null
 
+  const handleEmailReport = async () => {
+    setSending(true)
+    try {
+      const res = await api.post("/inventory/alerts/low-stock")
+      showToast(`Low-stock report emailed (${res.data.item_count} item${res.data.item_count === 1 ? "" : "s"}).`, "success")
+    } catch (err) {
+      showToast(err.response?.data?.error || "Failed to send low-stock report.", "error")
+    } finally {
+      setSending(false)
+    }
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">⚠️ Needs Reordering</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 className="text-lg font-semibold text-gray-800">⚠️ Needs Reordering</h2>
+        <button
+          onClick={handleEmailReport}
+          disabled={sending}
+          className="text-teal-700 hover:underline text-sm font-medium disabled:opacity-50"
+        >
+          {sending ? "Sending..." : "Email me this report"}
+        </button>
+      </div>
       <div className="space-y-2">
         {lowStockItems.map((item) => (
           <div

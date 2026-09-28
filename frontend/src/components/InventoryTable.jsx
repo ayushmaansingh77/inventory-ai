@@ -1,6 +1,5 @@
 import { useState } from "react";
 import ForecastModal from "./ForecastModal";
-import api from "../api/axiosInstance";
 
 function InventoryTable({
   items,
@@ -21,27 +20,7 @@ function InventoryTable({
   saveEdit,
   handleDelete,
 }) {
-  const [saleInputs, setSaleInputs] = useState({});
-  const [saleStatus, setSaleStatus] = useState({});
   const [selectedItem, setSelectedItem] = useState(null);
-
-  const handleSaleInputChange = (itemId, value) => {
-    setSaleInputs((prev) => ({ ...prev, [itemId]: value }));
-  };
-
-  const handleLogSale = async (itemId) => {
-    const quantity = Number(saleInputs[itemId]);
-    if (!quantity || quantity <= 0) return;
-
-    setSaleStatus((prev) => ({ ...prev, [itemId]: "saving" }));
-    try {
-      await api.post(`/inventory/${itemId}/sales`, { quantity_sold: quantity });
-      setSaleStatus((prev) => ({ ...prev, [itemId]: "saved" }));
-      setSaleInputs((prev) => ({ ...prev, [itemId]: "" }));
-    } catch (err) {
-      setSaleStatus((prev) => ({ ...prev, [itemId]: "error" }));
-    }
-  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
@@ -59,15 +38,16 @@ function InventoryTable({
         </p>
       )}
 
-      <div className="flex gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
         <input
           type="text"
+          aria-label="Search by name or SKU"
           placeholder="Search by Name or SKU"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 border rounded-lg px-3 py-2"
         />
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="flex items-center gap-2 cursor-pointer shrink-0">
           <input
             type="checkbox"
             checked={showLowStockOnly}
@@ -81,19 +61,19 @@ function InventoryTable({
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="min-w-full">
             <thead className="bg-gray-50">
-              <tr className="text-gray-600 text-sm uppercase tracking-wide">
-                <th className="px-6 py-4 text-left">Product</th>
-                <th className="px-6 py-4 text-left">Quantity</th>
+              <tr className="text-gray-600 text-xs sm:text-sm uppercase tracking-wide">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left">Product</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left">Quantity</th>
                 <th
                   onClick={() => handleSort("unit_price")}
-                  className="px-6 py-4 text-left cursor-pointer hover:text-teal-600 transition"
+                  className="px-3 sm:px-6 py-3 sm:py-4 text-left cursor-pointer hover:text-teal-600 transition"
                 >
                   Price
                   {sortConfig.key === "unit_price" &&
                     (sortConfig.direction === "asc" ? " ↑" : " ↓")}
                 </th>
-                <th className="px-6 py-4 text-left">Status</th>
-                <th className="px-6 py-4 text-center">Actions</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left">Status</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-center">Actions</th>
               </tr>
             </thead>
 
@@ -114,11 +94,12 @@ function InventoryTable({
                   >
                     {editingId === item.id ? (
                       <>
-                        <td className="px-6 py-5">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5">
                           <div className="space-y-2">
                             <input
                               type="text"
                               name="name"
+                              aria-label="Item name"
                               value={editData.name}
                               onChange={handleEditChange}
                               className="w-full rounded-lg border px-3 py-2"
@@ -126,6 +107,7 @@ function InventoryTable({
                             <input
                               type="text"
                               name="sku"
+                              aria-label="SKU"
                               value={editData.sku}
                               onChange={handleEditChange}
                               className="w-full rounded-lg border px-3 py-2"
@@ -133,30 +115,32 @@ function InventoryTable({
                           </div>
                         </td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5">
                           <input
                             type="number"
                             name="quantity"
+                            aria-label="Quantity"
                             value={editData.quantity}
                             onChange={handleEditChange}
                             className="w-28 rounded-lg border px-3 py-2"
                           />
                         </td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5">
                           <input
                             type="number"
                             step="0.01"
                             name="unit_price"
+                            aria-label="Unit price"
                             value={editData.unit_price}
                             onChange={handleEditChange}
                             className="w-28 rounded-lg border px-3 py-2"
                           />
                         </td>
 
-                        <td className="px-6 py-5">—</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-5">—</td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5">
                           <div className="flex justify-center gap-3">
                             <button
                               onClick={() => saveEdit(item.id)}
@@ -175,7 +159,7 @@ function InventoryTable({
                       </>
                     ) : (
                       <>
-                        <td className="px-6 py-5">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5">
                           <div>
                             <p className="font-semibold text-gray-800">
                               {item.name}
@@ -186,15 +170,15 @@ function InventoryTable({
                           </div>
                         </td>
 
-                        <td className="px-6 py-5 font-medium">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5 font-medium">
                           {item.quantity}
                         </td>
 
-                        <td className="px-6 py-5 font-medium">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5 font-medium">
                           ${Number(item.unit_price).toFixed(2)}
                         </td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5">
                           {stockStatus === "healthy" && (
                             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
                               Healthy
@@ -214,7 +198,7 @@ function InventoryTable({
                           )}
                         </td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-3 sm:px-6 py-3 sm:py-5">
                           <div className="flex flex-wrap items-center justify-center gap-2">
                             <button
                               onClick={() => startEdit(item)}
@@ -222,31 +206,6 @@ function InventoryTable({
                             >
                               Edit
                             </button>
-
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number"
-                                min="1"
-                                placeholder="Qty sold"
-                                value={saleInputs[item.id] || ""}
-                                onChange={(e) =>
-                                  handleSaleInputChange(item.id, e.target.value)
-                                }
-                                className="w-20 border rounded px-2 py-1 text-xs"
-                              />
-                              <button
-                                onClick={() => handleLogSale(item.id)}
-                                className="bg-teal-600 hover:bg-teal-700 text-white px-2 py-1 rounded text-xs transition"
-                              >
-                                {saleStatus[item.id] === "saving" ? "..." : "Log Sale"}
-                              </button>
-                              {saleStatus[item.id] === "saved" && (
-                                <span className="text-green-600 text-xs font-bold">✓</span>
-                              )}
-                              {saleStatus[item.id] === "error" && (
-                                <span className="text-red-600 text-xs font-bold">✗</span>
-                              )}
-                            </div>
 
                             <button
                               onClick={() => setSelectedItem(item)}

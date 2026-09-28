@@ -2,11 +2,13 @@ from flask import Blueprint, request, jsonify
 from app.services.auth_service import register_user, login_user
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
+from app import limiter
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
 @auth_bp.route("/register", methods=["POST"])
+@limiter.limit("10 per hour")
 def register():
     data = request.get_json()
 
@@ -39,6 +41,7 @@ def register():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("10 per minute")
 def login():
     data = request.get_json()
 
@@ -87,6 +90,7 @@ def verify_email(token):
 
 
 @auth_bp.route("/resend-verification", methods=["POST"])
+@limiter.limit("5 per hour")
 def resend_verification():
     data = request.get_json()
 

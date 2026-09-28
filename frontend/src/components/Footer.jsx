@@ -9,7 +9,7 @@ function Footer() {
           href="https://github.com/ayushmaansingh77/inventory-ai"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-600 transition-colors"
+          className="text-teal-700 hover:text-teal-800 transition-colors"
         >
           View on GitHub
         </a>

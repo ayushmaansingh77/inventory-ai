@@ -6,6 +6,11 @@ from app.models.inventory import InventoryItem
 from app.models.sales_record import SalesRecord
 import os
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# Must be set before create_app() runs — Flask-Mail reads it at
+# mail.init_app() time, so setting app.config["TESTING"] afterward doesn't
+# suppress real outbound email (verified directly: without this, tests that
+# exercise mail-sending code make real SMTP connections to Mailtrap).
+os.environ["MAIL_SUPPRESS_SEND"] = "true"
 
 @pytest.fixture
 def app():

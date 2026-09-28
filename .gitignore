@@ -29,3 +29,8 @@ Thumbs.db
 
 # Docker
 *.log
+
+# Personal notes (not for repo)
+CLAUDE.md
+interview.md
+project_overview.md

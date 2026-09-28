@@ -62,10 +62,12 @@ const RegisterForm = ({ onRegisterSuccess }) => {
 
               {/* Email input */}
               <div className="mb-4">
+                <label htmlFor="register-email" className="sr-only">Email address</label>
                 <input
+                  id="register-email"
                   type="email"
                   placeholder="Email address"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-600 transition duration-200"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -74,10 +76,12 @@ const RegisterForm = ({ onRegisterSuccess }) => {
 
               {/* Username input */}
               <div className="mb-4">
+                <label htmlFor="register-username" className="sr-only">Username</label>
                 <input
+                  id="register-username"
                   type="text"
                   placeholder="Username"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-600 transition duration-200"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
@@ -86,10 +90,12 @@ const RegisterForm = ({ onRegisterSuccess }) => {
 
               {/* Password input */}
               <div className="mb-4">
+                <label htmlFor="register-password" className="sr-only">Password</label>
                 <input
+                  id="register-password"
                   type="password"
                   placeholder="Password"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-600 transition duration-200"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -107,7 +113,7 @@ const RegisterForm = ({ onRegisterSuccess }) => {
               <button
                 type="submit"
                 disabled={loading || !email || !password || !username}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg disabled:opacity-50 transition duration-200 shadow-sm"
+                className="w-full bg-teal-700 hover:bg-teal-800 text-white font-semibold py-3 rounded-lg disabled:opacity-50 transition duration-200 shadow-sm"
               >
                 {loading ? "Checking details..." : "Create Account"}
               </button>

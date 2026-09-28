@@ -1,13 +1,18 @@
 import {
   Package,
   AlertTriangle,
-  TrendingUp,
+  DollarSign,
 } from "lucide-react";
 
-function StatsCards({ items, forecast, mostUrgentItem }) {
+function StatsCards({ items, mostUrgentItem }) {
   const lowStockCount = items.filter(
     (item) => item.quantity <= item.reorder_level
   ).length;
+
+  const totalValue = items.reduce(
+    (sum, item) => sum + item.quantity * item.unit_price,
+    0
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -58,27 +63,27 @@ function StatsCards({ items, forecast, mostUrgentItem }) {
         </div>
       </div>
 
-      {/* Forecast */}
+      {/* Inventory Value */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-500">
-              Tomorrow's Forecast
+              Total Inventory Value
             </p>
 
             <h2 className="text-4xl font-bold text-green-600 mt-2">
-              {forecast ? forecast[0].predicted_quantity : "--"}
+              ${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </h2>
 
             <p className="text-sm text-gray-500 mt-3">
               {mostUrgentItem
-                ? `${mostUrgentItem.name}`
+                ? `Most urgent: ${mostUrgentItem.name}`
                 : "No urgent items"}
             </p>
           </div>
 
           <div className="bg-green-100 p-4 rounded-xl">
-            <TrendingUp className="text-green-600" size={30} />
+            <DollarSign className="text-green-600" size={30} />
           </div>
         </div>
       </div>

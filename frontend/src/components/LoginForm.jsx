@@ -83,7 +83,7 @@ const LoginForm = ({ onLogin, registrationMessage }) => {
             {/* Back Button */}
             <Link
               to="/"
-              className="inline-flex items-center text-sm text-slate-500 hover:text-blue-600 transition-colors mb-5"
+              className="inline-flex items-center text-sm text-slate-500 hover:text-teal-700 transition-colors mb-5"
             >
               ← Back to Home
             </Link>
@@ -112,7 +112,7 @@ const LoginForm = ({ onLogin, registrationMessage }) => {
                 <input
                   type="email"
                   placeholder="you@example.com"
-                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600 transition-all"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -128,7 +128,7 @@ const LoginForm = ({ onLogin, registrationMessage }) => {
                 <input
                   type="password"
                   placeholder="••••••••"
-                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-600 transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -145,7 +145,7 @@ const LoginForm = ({ onLogin, registrationMessage }) => {
                       <button
                         type="button"
                         onClick={handleResend}
-                        className="text-blue-600 hover:underline text-xs font-medium"
+                        className="text-teal-700 hover:underline text-xs font-medium"
                       >
                         Resend verification email
                       </button>
@@ -164,7 +164,7 @@ const LoginForm = ({ onLogin, registrationMessage }) => {
               <button
                 type="submit"
                 disabled={loading || !email || !password}
-                className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-medium py-2.5 rounded-lg shadow-sm transition-all disabled:opacity-50 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full bg-teal-700 hover:bg-teal-800 active:scale-[0.99] text-white font-medium py-2.5 rounded-lg shadow-sm transition-all disabled:opacity-50 focus:ring-2 focus:ring-teal-600/20"
               >
                 {loading ? "Checking details..." : "Sign In"}
               </button>

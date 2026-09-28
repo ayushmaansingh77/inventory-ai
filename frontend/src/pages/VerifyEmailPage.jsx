@@ -45,7 +45,7 @@ function VerifyEmailPage() {
           {status === "success" && (
             <>
               <p className="text-green-600 font-semibold mb-4">{message}</p>
-              <Link to="/login" className="text-blue-500 underline">
+              <Link to="/login" className="text-teal-700 underline">
                 Go to Login
               </Link>
             </>
