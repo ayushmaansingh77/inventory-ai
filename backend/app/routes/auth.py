@@ -24,7 +24,8 @@ def register():
     user, error = register_user(
         username=data["username"],
         email=data["email"],
-        password=data["password"]
+        password=data["password"],
+        frontend_url=data.get("frontend_url")
     )
 
     if error:
@@ -97,7 +98,7 @@ def resend_verification():
     if not data or "email" not in data:
         return jsonify({"error": "Email is required"}), 400
 
-    success, error = resend_verification_email(data["email"])
+    success, error = resend_verification_email(data["email"], data.get("frontend_url"))
 
     if error:
         return jsonify({"error": error}), 400

@@ -1,4 +1,5 @@
 import os
+import re
 from app import db, mail
 from app.models.user import User
 from app.services.token_service import generate_verification_token
@@ -7,7 +8,33 @@ from flask_mail import Message
 from datetime import timedelta
 from app.services.token_service import verify_token
 
-def register_user(username, email, password):
+# Origins we trust for building email links during local development
+# (localhost and private-network addresses, so a phone on the same wifi works).
+_DEV_ORIGIN = re.compile(r"^http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$")
+
+
+def _frontend_base_url(requested_origin=None):
+    """
+    Base URL used in emailed links. Defaults to FRONTEND_URL, but honours the
+    origin the browser is actually on if it is allowlisted. Never trusts an
+    arbitrary origin: that would let someone request a verification link that
+    points at a site they control.
+    """
+    configured = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    if not requested_origin:
+        return configured
+
+    origin = requested_origin.strip().rstrip("/")
+    extra = os.getenv("ALLOWED_FRONTEND_ORIGINS", "")
+    allowed = {configured} | {o.strip().rstrip("/") for o in extra.split(",") if o.strip()}
+    if origin in allowed:
+        return origin
+    if os.getenv("FLASK_ENV", "production").lower() == "development" and _DEV_ORIGIN.match(origin):
+        return origin
+    return configured
+
+
+def register_user(username, email, password, frontend_url=None):
     """
     Creates a new user. Returns (user, error).
     If error is not None, registration failed.
@@ -28,8 +55,8 @@ def register_user(username, email, password):
     token = generate_verification_token(user.email)
 
     # Build the link the user will click from their inbox
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
-    verify_link = f"{frontend_url}/verify-email?token={token}"
+    base_url = _frontend_base_url(frontend_url)
+    verify_link = f"{base_url}/verify-email?token={token}"
 
     # Compose and send the actual email via Mailtrap
     msg = Message(
@@ -67,7 +94,7 @@ def verify_user_email(token):
     return user, None
 
 
-def resend_verification_email(email):
+def resend_verification_email(email, frontend_url=None):
     """
     Re-sends a fresh verification email if the account exists and isn't already verified.
     Returns (True, None) or (None, error).
@@ -81,8 +108,8 @@ def resend_verification_email(email):
         return None, "This account is already verified."
 
     token = generate_verification_token(user.email)
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
-    verify_link = f"{frontend_url}/verify-email?token={token}"
+    base_url = _frontend_base_url(frontend_url)
+    verify_link = f"{base_url}/verify-email?token={token}"
 
     msg = Message(
         subject="Verify your StockMind account",

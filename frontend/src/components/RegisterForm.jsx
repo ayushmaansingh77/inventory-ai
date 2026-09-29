@@ -22,6 +22,7 @@ const RegisterForm = ({ onRegisterSuccess }) => {
         email: email.trim(), // Extraneous spaces remove karne ke liye
         password: password,
         username: username.trim(),
+        frontend_url: window.location.origin,
       });
 
       // Agar registration successful ho toh callback call karein

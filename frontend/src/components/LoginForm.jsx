@@ -49,6 +49,7 @@ const LoginForm = ({ onLogin, registrationMessage }) => {
     try {
       await api.post("/auth/resend-verification", {
         email: email.trim(),
+        frontend_url: window.location.origin,
       });
 
       setResendStatus("Verification email sent — check your inbox.");

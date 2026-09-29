@@ -34,8 +34,8 @@ function VerifyEmailPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex-1 flex items-center justify-center bg-gray-100">
-        <div className="bg-white rounded-xl shadow-sm p-8 max-w-md text-center">
+      <div className="flex-1 flex items-center justify-center bg-gray-100 px-4 py-8">
+        <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 w-full max-w-md text-center break-words">
           {status === "verifying" && (
             <div className="flex flex-col items-center gap-3">
               <Spinner size="lg" />
