@@ -10,13 +10,17 @@ I built this as a portfolio project to practice building something end-to-end: a
 
 ## What it does
 
-- **Inventory management** — add, edit, delete, search, sort, and filter products, with per-user data isolation (every user only ever sees their own inventory)
-- **Low-stock alerts** — automatically flags items at or below their reorder point
+- **Inventory management** — add, edit, delete, search, sort, and filter products, with per-user data isolation (every user only ever sees their own inventory). A dashboard summarises item count, low-stock items and total inventory value
+- **Sales logging that actually moves stock** — log a sale from an item's forecast view; stock decrements, a sale larger than current stock is rejected, and both forecasts refresh immediately
+- **Bulk import from CSV / Excel** — upload a `.csv` or `.xlsx`, map your columns to the inventory fields (auto-matched, manually adjustable), preview, then import. Duplicate SKUs (in the database or within the file) are skipped and every bad row is reported instead of failing the whole upload. A sample template can be downloaded from the import dialog
+- **Export** — download your inventory as CSV or Excel
+- **Low-stock alerts** — flags items at or below their reorder point, and an "Email me this report" button sends the list to your inbox
 - **Demand forecasting, two ways:**
   - A linear regression baseline (NumPy) fit to each item's sales history
   - An LSTM neural network (TensorFlow/Keras) trained per-item, predicting the next 7 days
   - Both are shown side by side, so you can compare a simple statistical model against a neural network on the same real data
-- **Secure authentication** — JWT-based sessions, bcrypt password hashing, and a full email verification flow (signed, expiring tokens; a user can't log in until they've verified their email)
+- **Secure authentication** — JWT-based sessions, bcrypt password hashing, and a full email verification flow (signed, expiring tokens; a user can't log in until they've verified their email). Verification links use the origin the user signed up from, checked against an allowlist so a crafted request can't point a link at another site. Login, registration and resend-verification are rate limited
+- **Polished, accessible UI** — responsive layout from phone to desktop, toast notifications, a styled delete-confirmation dialog, keyboard-accessible modals (Escape to close, focus trapping, focus restore), labelled form fields, and `prefers-reduced-motion` support
 - **Fully containerized** — Docker + Docker Compose spins up the backend, frontend, and PostgreSQL database as three coordinated services
 
 ---
@@ -33,11 +37,11 @@ One real bug worth mentioning: early on, my LSTM was predicting values wildly lo
 
 ## Tech Stack
 
-**Backend:** Python, Flask (application factory pattern), PostgreSQL, SQLAlchemy, Flask-Migrate (Alembic), Flask-JWT-Extended, Flask-Bcrypt, Flask-Mail, itsdangerous, TensorFlow/Keras, NumPy, pandas, pytest
+**Backend:** Python, Flask (application factory pattern), PostgreSQL, SQLAlchemy, Flask-Migrate (Alembic), Flask-JWT-Extended, Flask-Bcrypt, Flask-Mail, Flask-Limiter, itsdangerous, openpyxl, TensorFlow/Keras, NumPy, pandas, pytest
 
-**Frontend:** React (Vite), React Router, Redux Toolkit, Tailwind CSS, Axios
+**Frontend:** React 19 (Vite), React Router, Redux Toolkit, Tailwind CSS v4, Axios, Recharts, lucide-react
 
-**Infrastructure:** Docker, Docker Compose, PostgreSQL
+**Infrastructure:** Docker, Docker Compose, PostgreSQL; deployed on Render (backend) and Vercel (frontend)
 
 ---
 
@@ -48,7 +52,7 @@ inventory-ai/
 ├── backend/
 │   ├── app/
 │   │   ├── models/          # User, InventoryItem, SalesRecord
-│   │   ├── routes/          # auth, inventory (CRUD + forecast endpoints)
+│   │   ├── routes/          # auth, inventory (CRUD, sales, forecasts), import, export, alerts
 │   │   └── services/        # business logic, (value, error) tuple pattern throughout
 │   ├── scripts/              # synthetic sales data generation, demo data seeding
 │   ├── tests/                 # pytest suite, isolated in-memory SQLite for tests
@@ -56,9 +60,10 @@ inventory-ai/
 │   └── Dockerfile
 ├── frontend/
 │   └── src/
-│       ├── components/       # NavBar, StatsCards, InventoryTable, ForecastPanel, etc.
+│       ├── components/       # NavBar, StatsCards, InventoryTable, ForecastModal, ImportModal, etc.
 │       ├── pages/             # LandingPage, Dashboard, Login/Register, VerifyEmail
 │       ├── features/          # Redux slice for inventory state
+│       ├── hooks/             # useToast, useModalA11y
 │       └── api/                # Axios instance with JWT interceptor
 │   └── Dockerfile
 └── docker-compose.yml
@@ -68,7 +73,7 @@ inventory-ai/
 
 ## API Overview
 
-All inventory and forecast routes require a valid JWT (obtained via login) and are automatically scoped to the authenticated user.
+All inventory, forecast, import, export and alert routes require a valid JWT (obtained via login) and are automatically scoped to the authenticated user.
 
 | Method | Route | Description |
 |---|---|---|
@@ -79,8 +84,15 @@ All inventory and forecast routes require a valid JWT (obtained via login) and a
 | GET | `/api/inventory/` | List the current user's items |
 | POST | `/api/inventory/` | Create an item |
 | GET / PUT / PATCH / DELETE | `/api/inventory/<id>` | Read, fully update, partially update, or delete an item |
+| POST | `/api/inventory/<id>/sales` | Log a sale (decrements stock; rejected if it exceeds current stock) |
 | GET | `/api/inventory/<id>/forecast` | 7-day demand forecast (linear regression) |
-| GET | `/api/inventory/<id>/forecast/lstm` | 7-day demand forecast (LSTM) |
+| GET | `/api/inventory/<id>/forecast/lstm` | 7-day demand forecast (LSTM, needs at least 30 days of sales) |
+| POST | `/api/inventory/import/preview` | Upload a CSV/XLSX, get its headers and sample rows |
+| POST | `/api/inventory/import/commit` | Import rows using a column mapping; skips duplicate SKUs and reports bad rows |
+| GET | `/api/inventory/export?format=csv` or `xlsx` | Download the current user's inventory |
+| POST | `/api/inventory/alerts/low-stock` | Email the current user their low-stock report |
+| GET | `/api/auth/me` | Current user's profile |
+| GET | `/api/health` | Health check |
 
 ---
 
@@ -103,6 +115,18 @@ docker-compose exec backend uv run python -m scripts.seed_demo_data
 
 Frontend: `http://localhost:3000` — Backend: `http://localhost:5000`
 
+### Configuration
+
+Copy `backend/.env.example` to `backend/.env` and fill it in. The email settings matter most:
+
+- `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` — SMTP credentials. The example file explains how to switch from a Mailtrap sandbox to real Gmail delivery (use a Google App Password, not your account password).
+- `MAIL_DEFAULT_SENDER` — the "From" address; with Gmail it must match `MAIL_USERNAME`.
+- `FRONTEND_URL` — the public URL of the frontend, used in emailed verification links (in production, e.g. your Vercel URL, without a trailing slash).
+- `ALLOWED_FRONTEND_ORIGINS` — optional, comma-separated extra origins allowed in verification links (e.g. preview deployments). With `FLASK_ENV=development`, localhost and private-network addresses are also accepted so links work from a phone on the same wifi.
+- `MAIL_SUPPRESS_SEND=true` — disables real sending (used by the test suite).
+
+The backend's first start takes several seconds because TensorFlow and NumPy are slow to import.
+
 ### Without Docker
 
 **Backend:**
@@ -122,15 +146,25 @@ npm install
 npm run dev
 ```
 
+### Tests and checks
+
+```bash
+cd backend && .venv/Scripts/python.exe -m pytest   # or: uv run pytest
+cd frontend && npm run build && npm run lint
+```
+
+The backend suite covers the auth-link logic, forecasting (including the LSTM cache), sales logging, import, export and alerts against an isolated in-memory SQLite database. There is no frontend test suite yet; the UI is checked by build + lint and manual testing.
+
 ---
 
 ## Known Limitations & Next Steps
 
 Being upfront about what's genuinely incomplete or simplified, rather than presenting the project as more finished than it is:
 
-- **The LSTM retrains from scratch on every single forecast request.** There's no model caching yet  fine for a demo, a real performance problem at any meaningful scale. Caching trained models per item (and only retraining when new sales data arrives) is the natural next step.
-- **No user-facing way to log a real sale yet.** Sales history currently only comes from the synthetic data generator and demo seed script  a `POST /api/inventory/<id>/sales` endpoint and a small UI for it is a reasonable next addition.
-- **No bulk import.** Adding inventory items is one at a time through the UI; CSV/Excel bulk upload was scoped conceptually but not built.
+- **Verification and alert emails don't send from the hosted backend on Render's free tier.** Render blocks outbound SMTP ports, so Gmail SMTP works locally but not there, regardless of credentials. The fix is to send through an HTTPS email API (e.g. Resend) instead of SMTP; not done yet.
+- **Rate limiting uses in-memory storage.** Limits reset on restart and aren't shared across workers; a multi-worker deployment would point Flask-Limiter at Redis.
+- **The LSTM is cached per item, but not persisted.** Trained models are kept in an in-process LRU cache and invalidated when an item's sales change, so a restart retrains on first request.
+- **No frontend test suite.** The UI is verified by build, lint and manual testing rather than automated tests.
 - **No CI/CD pipeline.** This was a deliberate scope cut, not an oversight  I chose to build a working, honestly-tested Docker setup over a rushed, unreliable pipeline.
 - **No Google/OAuth sign-in.** Email/password with verification is the only auth method currently.
 
